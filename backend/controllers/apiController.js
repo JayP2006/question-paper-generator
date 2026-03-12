@@ -22,7 +22,6 @@ exports.uploadSyllabus = async (req, res) => {
     }
 };
 
-// Replace your old export.uploadPreviousPaper with this:
 
 exports.uploadPreviousPapers = async (req, res) => {
     try {
@@ -33,30 +32,25 @@ exports.uploadPreviousPapers = async (req, res) => {
         let savedBlueprintId = null;
         let totalQuestionsExtracted = 0;
 
-        // Loop through all uploaded PDFs
+    
         for (let i = 0; i < req.files.length; i++) {
             const text = await pdfService.extractTextFromPDF(req.files[i].path);
             const { blueprint, questions } = pdfService.parseBlueprintAndQuestions(text);
 
-            // Extract Blueprint ONLY from the first paper to set the pattern
             if (i === 0 && blueprint.questions.length > 0) {
                 const savedBlueprint = new Blueprint({ subject: "Auto-detected Multi-Paper", questions: blueprint.questions });
                 await savedBlueprint.save();
                 savedBlueprintId = savedBlueprint._id;
             }
 
-            // Extract and save Questions from ALL papers
             for (const qData of questions) {
-                // Check if this question already exists in our database
                 const existing = await Question.findOne({ questionText: qData.questionText });
                 
                 if (existing) {
-                    // If it exists, increase frequency and mark as important
                     existing.frequency += 1;
                     existing.important = existing.frequency >= 2;
                     await existing.save();
                 } else {
-                    // Otherwise, add it as a new question
                     await Question.create(qData);
                 }
                 totalQuestionsExtracted++;

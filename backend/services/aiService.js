@@ -12,6 +12,6 @@ exports.extractTopicsFromSyllabus = async (text) => {
         return JSON.parse(responseText);
     } catch (error) {
         console.error("AI Extraction Error:", error);
-        return ["General"]; // Fallback
+        return ["General"];
     }
 };

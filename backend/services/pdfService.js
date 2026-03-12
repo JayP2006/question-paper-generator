@@ -20,19 +20,28 @@ exports.parseBlueprintAndQuestions = (text) => {
 
         matches.forEach((m) => {
             const label = m.match(/\(([a-z])\)/)[1];
-            const marks = parseInt(m.match(/\d{2}$/)[0]);
-            const questionText = m.replace(/\([a-z]\)/, "").replace(/\d{2}$/, "").trim();
 
-            parts.push({ label, marks });
+            // FIX 1: take only the last digit (3,4,7) instead of 2 digits
+            const marks = parseInt(m.match(/\d$/)[0]);
 
-            questions.push({
-                questionText,
-                marks,
-                topic: "Unknown",
-                year: new Date().getFullYear(),
-                frequency: 1,
-                important: false
-            });
+            const questionText = m
+                .replace(/\([a-z]\)/, "")
+                .replace(/\d{2}$/, "")
+                .trim();
+
+            // FIX 2: prevent duplicate labels
+            if (!parts.some(p => p.label === label)) {
+                parts.push({ label, marks });
+
+                questions.push({
+                    questionText,
+                    marks,
+                    topic: "Unknown",
+                    year: new Date().getFullYear(),
+                    frequency: 1,
+                    important: false
+                });
+            }
         });
 
         blueprint.questions.push({
