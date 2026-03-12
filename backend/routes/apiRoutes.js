@@ -11,7 +11,7 @@ const upload = multer({ dest: 'uploads/' });
 router.post('/upload-syllabus', upload.single('file'), apiController.uploadSyllabus);
 
 router.post('/upload-previous-papers', upload.array('files', 10), apiController.uploadPreviousPapers);
-
+router.post("/generate-paper", apiController.generatePaper);
 router.post('/generate-paper', apiController.generatePaper);
 router.get('/download-paper/:id', apiController.downloadPaper);
 router.get('/questions', apiController.getQuestions);

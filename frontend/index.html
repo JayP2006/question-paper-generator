@@ -14,7 +14,7 @@ body{
 }
 
 .container{
-    max-width:800px;
+    max-width:900px;
     margin:auto;
     background:white;
     padding:20px;
@@ -56,10 +56,14 @@ button:hover{
     color:green;
 }
 
-input{
+input, textarea{
     width:100%;
     padding:8px;
     margin-bottom:10px;
+}
+
+textarea{
+    min-height:120px;
 }
 
 pre{
@@ -106,10 +110,24 @@ pre{
 </div>
 
 
+<!-- PROMPT -->
+<div class="section">
+
+<h2>3. Optional Teacher Prompt</h2>
+
+<textarea id="prompt" placeholder="Example:
+Generate GTU style exam.
+Total Questions: 6
+Marks pattern: 3,4,7
+Add OR question in Q2 and Q4"></textarea>
+
+</div>
+
+
 <!-- GENERATE PAPER -->
 <div class="section">
 
-<h2>3. Generate Question Paper</h2>
+<h2>4. Generate Question Paper</h2>
 
 <input id="blueprintId" placeholder="Blueprint ID">
 
@@ -123,7 +141,7 @@ pre{
 <!-- DOWNLOAD -->
 <div class="section">
 
-<h2>4. Download Paper</h2>
+<h2>5. Download Paper</h2>
 
 <input id="paperId" placeholder="Generated Paper ID">
 
@@ -135,7 +153,7 @@ pre{
 <!-- VIEW DB QUESTIONS -->
 <div class="section">
 
-<h2>5. View Extracted Questions</h2>
+<h2>6. View Extracted Questions</h2>
 
 <button onclick="fetchQuestions()">Fetch Questions</button>
 
@@ -150,7 +168,6 @@ pre{
 
 const API_BASE="http://localhost:5000/api";
 
-
 function showResult(id,text,isError=false){
 
 const el=document.getElementById(id);
@@ -164,9 +181,15 @@ el.className=isError?"result error":"result success";
 
 async function safeFetch(url,options){
 
+console.log("Calling API:",url);
+
 const res=await fetch(url,options);
 
+console.log("Response status:",res.status);
+
 const text=await res.text();
+
+console.log("Raw response:",text);
 
 try{
 
@@ -176,7 +199,7 @@ return JSON.parse(text);
 
 catch{
 
-throw new Error("Server returned HTML instead of JSON. Check backend route.");
+throw new Error("Server did not return JSON. Check backend route.");
 
 }
 
@@ -189,7 +212,6 @@ throw new Error("Server returned HTML instead of JSON. Check backend route.");
 async function uploadSyllabus(){
 
 const file=document.getElementById("syllabusFile").files[0];
-
 const subject=document.getElementById("subjectName").value;
 
 if(!file)return alert("Select syllabus file");
@@ -197,20 +219,14 @@ if(!file)return alert("Select syllabus file");
 showResult("syllabusResult","Uploading...");
 
 const formData=new FormData();
-
 formData.append("file",file);
-
 formData.append("subject",subject);
-
 
 try{
 
 const data=await safeFetch(`${API_BASE}/upload-syllabus`,{
-
 method:"POST",
-
 body:formData
-
 });
 
 showResult("syllabusResult","Topics: "+data.syllabus.topics.join(", "));
@@ -237,30 +253,21 @@ if(files.length===0)return alert("Select PDF files");
 
 showResult("paperResult","Uploading papers...");
 
-
 const formData=new FormData();
 
 for(let i=0;i<files.length;i++){
-
 formData.append("files",files[i]);
-
 }
-
 
 try{
 
 const data=await safeFetch(`${API_BASE}/upload-previous-papers`,{
-
 method:"POST",
-
 body:formData
-
 });
 
 showResult("paperResult",
-
 `Extracted ${data.totalQuestionsAdded} questions. Blueprint ID: ${data.blueprintId}`
-
 );
 
 document.getElementById("blueprintId").value=data.blueprintId;
@@ -282,6 +289,7 @@ showResult("paperResult",err.message,true);
 async function generatePaper(){
 
 const blueprintId=document.getElementById("blueprintId").value;
+const prompt=document.getElementById("prompt").value;
 
 if(!blueprintId)return alert("Enter blueprint ID");
 
@@ -290,14 +298,21 @@ showResult("generateResult","Generating paper...");
 try{
 
 const data=await safeFetch(`${API_BASE}/generate-paper`,{
-
 method:"POST",
-
-headers:{"Content-Type":"application/json"},
-
-body:JSON.stringify({blueprintId})
-
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+blueprintId:blueprintId,
+prompt:prompt
+})
 });
+
+console.log("Generate paper response:",data);
+
+if(!data.paperId){
+throw new Error("paperId missing in backend response");
+}
 
 showResult("generateResult","Paper generated ID: "+data.paperId);
 

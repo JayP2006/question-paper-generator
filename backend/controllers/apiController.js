@@ -6,7 +6,8 @@ const GeneratedPaper = require('../models/GeneratedPaper');
 const pdfService = require('../services/pdfService');
 const aiService = require('../services/aiService');
 const generatorService = require('../services/generatorService');
-
+const { parsePrompt } = require('../services/promptParserService');
+const { generatePaperData } = require('../services/generatorService');
 exports.uploadSyllabus = async (req, res) => {
     try {
         const text = await pdfService.extractTextFromPDF(req.file.path);
@@ -67,23 +68,52 @@ exports.uploadPreviousPapers = async (req, res) => {
     }
 };
 exports.generatePaper = async (req, res) => {
+
     try {
-        const { blueprintId } = req.body;
-        const content = await generatorService.generatePaperData(blueprintId);
-        
-        const paper = new GeneratedPaper({ subject: "Generated Paper", content });
+
+        const { blueprintId, prompt } = req.body;
+
+        let rules = null;
+
+        if(prompt && prompt.trim().length > 0){
+            rules = await parsePrompt(prompt);
+        }
+
+        // generate questions
+        const content = await generatePaperData(blueprintId, rules);
+
+        // save in DB
+        const paper = new GeneratedPaper({
+            subject:"Generated Paper",
+            content
+        });
+
         await paper.save();
 
+        console.log("Saved paper id:", paper._id);
+
+        // generate pdf
         const pdfPath = await pdfService.generatePDF(paper._id, content);
+
         paper.pdfPath = pdfPath;
+
         await paper.save();
 
-        res.status(200).json({ message: "Paper generated", paperId: paper._id });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
+        res.json({
+            success:true,
+            paperId: paper._id
+        });
 
+    }
+    catch(err){
+
+        res.status(500).json({
+            error:err.message
+        });
+
+    }
+
+};
 exports.downloadPaper = async (req, res) => {
     try {
         const paper = await GeneratedPaper.findById(req.params.id);

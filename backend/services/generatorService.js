@@ -5,67 +5,61 @@ function shuffle(arr) {
     return arr.sort(() => Math.random() - 0.5);
 }
 
-exports.generatePaperData = async (blueprintId) => {
+exports.generatePaperData = async (blueprintId, rules=null) => {
 
-    const Blueprint = require('../models/Blueprint');
+    const Blueprint = require("../models/Blueprint");
+
     const blueprint = await Blueprint.findById(blueprintId);
 
-    if (!blueprint) throw new Error("Blueprint not found");
+    if(!blueprint) throw new Error("Blueprint not found");
 
-    const generatedContent = { questions: [] };
+    const generated = {questions:[]};
 
-    const q3 = shuffle(await Question.find({ marks: 3 }));
-    const q4 = shuffle(await Question.find({ marks: 4 }));
-    const q7 = shuffle(await Question.find({ marks: 7 }));
+    const q3 = shuffle(await Question.find({marks:3}));
+    const q4 = shuffle(await Question.find({marks:4}));
+    const q7 = shuffle(await Question.find({marks:7}));
 
-    let i3 = 0;
-    let i4 = 0;
-    let i7 = 0;
+    let i3=0,i4=0,i7=0;
 
-    for (const bq of blueprint.questions) {
+    let pattern = blueprint.questions;
 
-        const generatedQ = {
-            number: bq.number,
-            parts: []
-        };
+    if(rules && rules.totalQuestions){
+        pattern = pattern.slice(0,rules.totalQuestions);
+    }
 
-        for (const part of bq.parts) {
+    for(const q of pattern){
 
-            let selectedQ = null;
+        const parts=[];
 
-            // FORCE VALID MARKS
-            if (part.marks === 3) {
+        for(const part of q.parts){
 
-                if (i3 >= q3.length) i3 = 0;
-                selectedQ = q3[i3++];
+            let selected;
 
+            if(part.marks===3){
+                selected=q3[i3++ % q3.length];
+            }
+            else if(part.marks===4){
+                selected=q4[i4++ % q4.length];
+            }
+            else{
+                selected=q7[i7++ % q7.length];
             }
 
-            else if (part.marks === 4) {
-
-                if (i4 >= q4.length) i4 = 0;
-                selectedQ = q4[i4++];
-
-            }
-
-            else {  // treat everything else as 7
-
-                if (i7 >= q7.length) i7 = 0;
-                selectedQ = q7[i7++];
-
-            }
-
-            generatedQ.parts.push({
-                label: part.label,
-                marks: selectedQ.marks,
-                questionText: selectedQ.questionText
+            parts.push({
+                label:part.label,
+                marks:selected.marks,
+                questionText:selected.questionText
             });
 
         }
 
-        generatedContent.questions.push(generatedQ);
+        generated.questions.push({
+            number:q.number,
+            parts
+        });
 
     }
 
-    return generatedContent;
+    return generated;
+
 };
