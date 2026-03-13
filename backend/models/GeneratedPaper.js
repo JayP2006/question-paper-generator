@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const GeneratedPaperSchema = new mongoose.Schema({
     subject: String,
+    totalMarks: Number,
     content: Object,
     pdfPath: String,
     createdAt: { type: Date, default: Date.now }
